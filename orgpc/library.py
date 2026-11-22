@@ -30,6 +30,30 @@ def _key(target):
 class Library:
     def __init__(self):
         self.items = load_json(LIB_FILE, {"items": []}).get("items", [])
+        if self._dedupe():
+            self.save()
+
+    def _dedupe(self):
+        """Quita copias del mismo juego (p. ej. Steam + acceso del escritorio)."""
+        stores = ("Steam", "Epic Games", "GOG")
+        groups = {}
+        for it in self.items:
+            groups.setdefault(_name_key(it.get("name")), []).append(it)
+        drop = set()
+        for key, group in groups.items():
+            if not key or len(group) < 2:
+                continue
+            keep = next((i for i in group if i.get("source") in stores), None) or \
+                next((i for i in group if i.get("source") == "manual"), None) or group[0]
+            for it in group:
+                if it is keep or it.get("source") == "manual" and keep.get("source") != "manual":
+                    continue
+                keep["launches"] = keep.get("launches", 0) + it.get("launches", 0)
+                keep["favorite"] = keep.get("favorite") or it.get("favorite")
+                drop.add(it["id"])
+        if drop:
+            self.items = [i for i in self.items if i["id"] not in drop]
+        return bool(drop)
 
     # ---------------------------------------------------------------- datos
     def save(self):
@@ -115,13 +139,19 @@ class Library:
     def import_entries(self, entries):
         known = self._known_keys()
         by_name = {_name_key(i["name"]): i for i in self.items}
+        by_target = {_key(i.get("target")): i for i in self.items if i.get("target")}
         added = 0
         for e in entries:
             k1, k2 = _key(e.get("target")), _key(e.get("resolved"))
             if (k1 and k1 in known) or (k2 and k2 in known):
+                old = by_target.get(k1)
+                if old is not None:
+                    for f in ("image", "location"):
+                        if e.get(f) and not old.get(f):
+                            old[f] = e[f]
                 continue
             same = by_name.get(_name_key(e["name"]))
-            if same and same.get("category") == e["category"]:
+            if same:
                 # mismo juego/programa desde otra fuente: completa los datos que falten
                 for f in ("image", "location"):
                     if e.get(f) and not same.get(f):
@@ -187,9 +217,12 @@ STEAM_EXCLUDE = re.compile(r"redistributable|steamworks|proton|steam linux runti
 
 def _steam_image(root, appid):
     cache = os.path.join(root, "appcache", "librarycache")
-    for pat in (f"{appid}_header.jpg", os.path.join(str(appid), "header.jpg"),
-                os.path.join(str(appid), "*", "header.jpg"), f"{appid}_library_hero.jpg"):
-        hits = glob.glob(os.path.join(cache, pat))
+    a = str(appid)
+    for pat in (f"{a}_header.jpg", os.path.join(a, "header.jpg"), os.path.join(a, "**", "header.jpg"),
+                os.path.join(a, "**", "library_header*.jpg"), f"{a}_library_hero.jpg",
+                os.path.join(a, "**", "library_hero.jpg"), f"{a}_library_600x900.jpg",
+                os.path.join(a, "**", "library_capsule*.jpg"), os.path.join(a, "**", "library_600x900.jpg")):
+        hits = glob.glob(os.path.join(cache, pat), recursive=True)
         if hits:
             return hits[0]
     return ""
@@ -364,12 +397,16 @@ def icon_path_for(item):
     src = icon_source(item)
     if not src:
         return None
-    h = hashlib.sha1(src.lower().encode("utf-8")).hexdigest()[:16]
+    h = hashlib.sha1(("v2|" + src.lower()).encode("utf-8")).hexdigest()[:16]
     return os.path.join(icon_cache_dir(), h + ".png")
 
 
 def icon_source(item):
-    for cand in (item.get("resolved"), item.get("target")):
+    t = item.get("target") or ""
+    # Los accesos directos los resuelve PowerShell (icono propio del acceso, sin flecha)
+    if t.lower().endswith((".lnk", ".url", ".website")) and os.path.isfile(t):
+        return t
+    for cand in (item.get("resolved"), t):
         if cand and not _is_url(cand) and os.path.isfile(cand):
             return cand
     loc = item.get("location")
@@ -383,13 +420,40 @@ def icon_source(item):
 
 PS_SCRIPT = r"""
 Add-Type -AssemblyName System.Drawing
+$wsh = New-Object -ComObject WScript.Shell
+function Save-Icon($src, $dst) {
+  if (-not $src) { return $false }
+  $src = [Environment]::ExpandEnvironmentVariables($src.Trim().Trim('"'))
+  if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { return $false }
+  $ext = [IO.Path]::GetExtension($src).ToLower()
+  if ($ext -eq '.dll') { return $false }
+  if ($ext -eq '.ico') { $ic = New-Object System.Drawing.Icon($src, 64, 64) }
+  else { $ic = [System.Drawing.Icon]::ExtractAssociatedIcon($src) }
+  if (-not $ic) { return $false }
+  $bmp = $ic.ToBitmap()
+  $bmp.Save($dst, [System.Drawing.Imaging.ImageFormat]::Png)
+  $bmp.Dispose(); $ic.Dispose()
+  return $true
+}
 $lines = Get-Content -LiteralPath $args[0] -Encoding UTF8
 foreach ($line in $lines) {
   $parts = $line -split "`t"
   if ($parts.Count -lt 2) { continue }
+  $src = $parts[0]; $dst = $parts[1]
   try {
-    $ic = [System.Drawing.Icon]::ExtractAssociatedIcon($parts[0])
-    if ($ic) { $bmp = $ic.ToBitmap(); $bmp.Save($parts[1], [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose(); $ic.Dispose() }
+    $ext = [IO.Path]::GetExtension($src).ToLower()
+    if ($ext -eq '.lnk') {
+      $s = $wsh.CreateShortcut($src)
+      $loc = ($s.IconLocation -split ',')[0]
+      $ok = $false
+      try { $ok = Save-Icon $loc $dst } catch {}
+      if (-not $ok) { [void](Save-Icon $s.TargetPath $dst) }
+    } elseif ($ext -eq '.url' -or $ext -eq '.website') {
+      $ico = Get-Content -LiteralPath $src | Where-Object { $_ -match '^IconFile=' } | Select-Object -First 1
+      if ($ico) { [void](Save-Icon ($ico -replace '^IconFile=', '') $dst) }
+    } else {
+      [void](Save-Icon $src $dst)
+    }
   } catch {}
 }
 """

@@ -148,7 +148,9 @@ class App(ctk.CTk):
             self.save_config()
             lib.run_detection(["Escritorio", "Steam", "Epic Games", "GOG"])
         else:
-            lib.load_icons_async()
+            lib.refresh()
+            # busca juegos nuevos de las tiendas en cada arranque (sin molestar)
+            lib.run_detection(["Steam", "Epic Games", "GOG"], quiet=True)
         if self.config_data.get("auto_organize"):
             self.views["desktop"].organize(silent=True)
 

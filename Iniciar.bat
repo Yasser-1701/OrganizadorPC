@@ -41,8 +41,14 @@ echo  [3/4] Dependencias OK
 
 rem ---- 5. Abrir la app (con consola visible si falla) ----
 echo  [4/4] Abriendo Organizador PC...
-%PY% main.py
-if errorlevel 1 goto apperror
+rem pythonw abre la app sin ventana negra (los errores salen en una ventana propia)
+set "PYW=pythonw"
+if "%PY%"=="py -3" set "PYW=pyw -3"
+start "" %PYW% main.py
+if errorlevel 1 (
+    %PY% main.py
+    if errorlevel 1 goto apperror
+)
 exit /b 0
 
 :nounzip

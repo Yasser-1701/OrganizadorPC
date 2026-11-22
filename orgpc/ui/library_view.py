@@ -341,15 +341,18 @@ class LibraryView(ctk.CTkFrame):
         DetectDialog(self.app, self)
 
     def run_detection(self, sources, quiet=False):
-        self.app.notify("Buscando juegos y programas…")
+        if not quiet:
+            self.app.notify("Buscando juegos y programas…")
 
         def done(res, err):
             if err:
-                messagebox.showerror("Error", str(err), parent=self)
+                if not quiet:
+                    messagebox.showerror("Error", str(err), parent=self)
                 return
             added, found = res
             detail = ", ".join(f"{k}: {v}" for k, v in found.items() if v)
-            self.app.notify(f"Añadidos {added} elementos nuevos" + (f"  ({detail})" if detail else ""))
+            if not quiet or added:
+                self.app.notify(f"Añadidos {added} elementos nuevos" + (f"  ({detail})" if detail else ""))
             self.refresh()
             self.load_icons_async()
         self.app.run_bg(lambda: self.app.library.scan_and_import(sources), done)
