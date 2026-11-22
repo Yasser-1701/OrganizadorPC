@@ -1,0 +1,55 @@
+ORGANIZADOR PC
+==============
+
+Una app para Windows que lo deja todo en su sitio:
+
+  BIBLIOTECA
+   - Detecta tus juegos de Steam, Epic Games y GOG, y los accesos del escritorio
+     (opcionalmente también todo el menu Inicio).
+   - Tarjetas con portada (juegos de Steam) o icono, buscador, favoritos,
+     categorias y orden por nombre / mas usados / recientes.
+   - Doble clic para abrir, clic derecho para renombrar, cambiar categoria,
+     abrir la ubicacion o quitarlo. Boton "Anadir" para meter cualquier
+     programa, carpeta o pagina web a mano.
+
+  ORGANIZAR ESCRITORIO
+   - Analiza el escritorio y agrupa todo en carpetas: Juegos, Programas, Web,
+     Documentos, Imagenes, Videos, Musica, Comprimidos, Instaladores, Codigo...
+   - Puedes cambiar la categoria de cada archivo antes de mover y elegir que
+     categorias mover.
+   - Boton "Deshacer" para devolverlo todo a como estaba.
+
+  OPTIMIZAR PC
+   - Limpieza: temporales, cache de Chrome/Edge/Brave/Opera/Firefox, Discord,
+     Spotify, Teams, Steam/Epic, shaders, miniaturas, informes de errores,
+     Windows Update, Prefetch y papelera. Primero "Analizar" para ver cuanto
+     ocupa cada cosa. NO borra contrasenas, historial ni sesiones.
+   - Inicio de Windows: activa/desactiva los programas que arrancan con el PC
+     (igual que el Administrador de tareas, reversible).
+   - Procesos: lo que mas RAM esta usando, con boton para cerrarlo.
+   - Herramientas: vaciar DNS, plan de energia Alto rendimiento, Modo juego,
+     SFC, DISM, liberador de espacio, optimizar unidades...
+
+  AJUSTES
+   - Tema oscuro / claro, iniciar con Windows, organizar el escritorio
+     automaticamente al abrir.
+
+
+COMO USARLA
+-----------
+
+1. Necesitas Python 3.10 o superior: https://www.python.org/downloads/
+   (al instalar, marca "Add python.exe to PATH").
+
+2. Doble clic en  Iniciar.bat
+   La primera vez instala lo necesario (customtkinter, psutil, pillow).
+
+3. (Opcional) Para tener un .exe normal que no necesite Python:
+   doble clic en  Crear_EXE.bat  ->  aparece  dist\OrganizadorPC.exe
+
+Algunas limpiezas (Temporales de Windows, Windows Update, Prefetch) y mover
+accesos del escritorio publico necesitan permisos: usa el boton
+"Ejecutar como admin" de la barra lateral.
+
+Tus datos (biblioteca, ajustes, historial para deshacer) se guardan en
+%APPDATA%\OrganizadorPC

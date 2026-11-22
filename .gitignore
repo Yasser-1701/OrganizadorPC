@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+.dependencias_ok
+*.zip
