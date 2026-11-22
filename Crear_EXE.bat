@@ -1,6 +1,11 @@
 @echo off
 title Crear OrganizadorPC.exe
 cd /d "%~dp0"
+if not exist "main.py" (
+    echo Primero descomprime el ZIP: clic derecho, "Extraer todo...", y abre este archivo desde la carpeta extraida.
+    pause
+    exit /b 1
+)
 
 set "PY="
 where py >nul 2>nul && set "PY=py"
@@ -14,7 +19,7 @@ if not defined PY (
 )
 
 echo Instalando herramientas...
-%PY% -m pip install --upgrade -r requirements.txt pyinstaller
+%PY% -m pip install "customtkinter==6.0.0" psutil pillow pyinstaller
 if errorlevel 1 goto error
 
 echo Creando el ejecutable, puede tardar un par de minutos...

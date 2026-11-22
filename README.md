@@ -4,9 +4,10 @@ App de escritorio para **Windows** que organiza tu escritorio, reúne tus juegos
 
 ## Descargar y usar
 
-1. Pulsa el botón verde **Code → Download ZIP** y descomprímelo.
+1. Pulsa el botón verde **Code → Download ZIP**.
+   **Descomprímelo** (clic derecho → *Extraer todo…*). No ejecutes nada desde dentro del ZIP.
 2. Instala [Python 3.10 o superior](https://www.python.org/downloads/) marcando **"Add python.exe to PATH"**.
-3. Doble clic en **`Iniciar.bat`** (la primera vez instala las dependencias).
+3. Dentro de la carpeta extraída, doble clic en **`Iniciar.bat`** (la primera vez instala las dependencias).
 4. Opcional: **`Crear_EXE.bat`** genera `dist\OrganizadorPC.exe`, que funciona sin Python.
 
 ## Funciones
